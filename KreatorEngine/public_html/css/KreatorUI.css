@@ -1,0 +1,125 @@
+/* 
+    Created on : Nov 17, 2020, 9:29:27 AM
+    Author     : Yigit Koc
+    Version    : v1.2.3
+    Description: UI element kit for Kreator Engine
+    Updated through KreatorEngine.js
+*/
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@200;400;600&family=Roboto:ital,wght@0,100;0,300;0,500;1,400&display=swap');
+
+body{
+    font-family: 'Roboto', sans-serif;
+}
+
+.btn-grp{
+    padding: 16px;
+    max-width: 480px;
+    text-align: center;
+    position: relative;
+}
+
+.btn{
+   padding: 8px;
+   font-size: 1em;
+   border: none;
+   text-align: center;
+   text-decoration: none;
+   display: inline-block;
+}
+
+input {
+    padding: 8px;
+    font-size: 1em;
+    border: none;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+
+label{
+    font-size: 1.2em;
+    font-weight: 500;
+    font-style: italic;
+    line-height: 1.2em;
+}
+
+label.slider{
+    height: 20px;
+    margin-top:18px;
+    margin-right: 16px;
+    position:relative;
+    display: inline-block;
+    float:left;
+}
+
+input[type=number]{
+    color: #f1f1f1;
+    background-color: #303030;
+}
+
+input[type=number]:focus, input[type=number]:active{
+   background-color: #0a0a0a;
+}
+
+input[type=number]::-webkit-inner-spin-button {
+  opacity: 1;
+}
+
+input[type=range]{
+    margin: 8px;
+    appearance: none;
+    -webkit-appearance: none;
+    width: auto;
+    box-sizing: border-box;
+    padding: 8px;
+    background-color: #f1f1f1;
+    border-style: none;
+    display: inline-block;
+    float:left;
+}
+
+input[type=range]:focus, input[type=range]:active{
+    margin: 8px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: #d0d0d0;
+    border-style: none;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default look */
+  appearance: none;
+  width: 8px; /* Set a specific slider handle width */
+  height: 25px; /* Slider handle height */
+  background: #303030; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
+
+input[type=range]::-moz-range-thumb {
+  width: 8px; /* Set a specific slider handle width */
+  height: 25px; /* Slider handle height */
+  background: #303030; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
+
+
+.btn:focus, .btn:active{
+   padding: 8px;
+   font-size: 1em;
+   border: none;
+   text-decoration: none;
+   display: inline-block;
+}
+
+.btn-dark{
+    color: #f1f1f1;
+    background-color: #303030;
+}
+
+.btn-dark:hover{
+    background-color: #0a0a0a;
+}
+
+.btn-dark:active{
+    background-color: #000;
+}
