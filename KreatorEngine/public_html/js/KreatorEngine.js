@@ -94,11 +94,20 @@ class Kreator{
     static type = 0;
     static vert_loc = 0;
     static color_loc = 0;
+    static normal_loc = 0;
+
     static model_loc = 0;
     static viewmat_loc = 0;
     static projection_loc = 0;
+    static light_loc = 0;
+
+    static ambient_loc = 0;
+    static diffuse_loc = 0;
+    static specular_loc = 0;
+    static shininess_loc = 0;
 
     activeCamera = new KreatorCamera();
+    lights = [new KreatorLight(new KreatorVector(4, [0, 600, -200, 1.0]))];
     scene = [];
     animations = {};
     buttons = {};
@@ -183,10 +192,19 @@ class Kreator{
         KreatorLogger.debug("WebGL is using linked program.");
         Kreator.type = this.__gl.FLOAT;
         Kreator.vert_loc = this.__gl.getAttribLocation(this.__glprogram, "v_position");
-        Kreator.color_loc = this.__gl.getAttribLocation(this.__glprogram, "v_color");
+        Kreator.normal_loc = this.__gl.getAttribLocation(this.__glprogram, "v_normal");
+        // Kreator.color_loc = this.__gl.getAttribLocation(this.__glprogram, "v_color");
+        // Kreator.color_loc = this.__gl.getAttribLocation(this.__glprogram, "v_color");
+
         Kreator.model_loc = this.__gl.getUniformLocation(this.__glprogram, "model");
         Kreator.viewmat_loc = this.__gl.getUniformLocation(this.__glprogram, "view");
         Kreator.projection_loc = this.__gl.getUniformLocation(this.__glprogram, "projection");
+        Kreator.light_loc = this.__gl.getUniformLocation(this.__glprogram, "lightPos");
+        Kreator.ambient_loc = this.__gl.getUniformLocation(this.__glprogram, "AmbientProduct");
+        Kreator.diffuse_loc = this.__gl.getUniformLocation(this.__glprogram, "DiffuseProduct");
+        Kreator.specular_loc = this.__gl.getUniformLocation(this.__glprogram, "SpecularProduct");
+        Kreator.shininess_loc = this.__gl.getUniformLocation(this.__glprogram, "Shininess");
+
 
         this.shape_buffer =  this.__gl.createBuffer();
         this.__gl.bindBuffer(GL_ARRAY_BUFFER, this.shape_buffer);
@@ -227,7 +245,9 @@ class Kreator{
         if(this.freezeDraw) return;
         this.__gl.uniformMatrix4fv(Kreator.viewmat_loc, false, this.activeCamera.getViewMatrix());
         this.__gl.uniformMatrix4fv(Kreator.projection_loc, false, this.activeCamera.getProjectionMatrix());
+        this.__gl.uniform4fv(Kreator.light_loc, this.lights[0].getPos());
     }
+
 
     drawScene(){
         if(this.freezeDraw) return;
@@ -242,14 +262,28 @@ class Kreator{
         if(o instanceof KreatorInstance){
             let instance = o.getInstance();
             let shape_vert = instance.getVertices();
-            let shape_color = instance.getVerticesColors();
+            let shape_normals = instance.getNormals();
+            // let shape_color = instance.getVerticesColors();
             let instanceC = o.instanceCount();
-           
-            this.__gl.bufferData(GL_ARRAY_BUFFER, new Float32Array(shape_vert.concat(shape_color)), GL_DYNAMIC_DRAW);
+            let material = instance.material;
+            let AmbientProduct = material.ambient.color.multiplyEach(this.lights[0].ambient.color);
+            let DiffuseProduct = material.diffuse.color.multiplyEach(this.lights[0].diffuse.color);
+            let SpecularProduct = material.specular.color.multiplyEach(this.lights[0].specular.color);
+            AmbientProduct.set(3, 1.0);
+            DiffuseProduct.set(3, 1.0);
+            SpecularProduct.set(3, 1.0);
+
+            this.__gl.bufferData(GL_ARRAY_BUFFER, new Float32Array(shape_vert.concat(shape_normals)), GL_DYNAMIC_DRAW);
             this.__gl.vertexAttribPointer( Kreator.vert_loc, Kreator.numComponents, Kreator.type, Kreator.normalize, Kreator.stride, Kreator.offset);
             this.__gl.enableVertexAttribArray(Kreator.vert_loc);
-            this.__gl.vertexAttribPointer(Kreator.color_loc, KreatorColor.numComponents, Kreator.type, Kreator.normalize, Kreator.stride, shape_vert.length*4);
-            this.__gl.enableVertexAttribArray(Kreator.color_loc);
+            this.__gl.vertexAttribPointer(Kreator.normal_loc, Kreator.numComponents, Kreator.type, Kreator.normalize, Kreator.stride, shape_vert.length*4);
+            this.__gl.enableVertexAttribArray(Kreator.normal_loc);
+            this.__gl.uniform4fv(Kreator.ambient_loc, AmbientProduct.toArray());
+            this.__gl.uniform4fv(Kreator.diffuse_loc, DiffuseProduct.toArray());
+            this.__gl.uniform4fv(Kreator.specular_loc, SpecularProduct.toArray());
+            this.__gl.uniform1f(Kreator.shininess_loc, material.getShine());
+            // this.__gl.vertexAttribPointer(Kreator.color_loc, KreatorColor.numComponents, Kreator.type, Kreator.normalize, Kreator.stride, shape_vert.length*4);
+            // this.__gl.enableVertexAttribArray(Kreator.color_loc);
             for(let i = 0; i<instanceC; i++){
                 let modelm = o.getModelMatrix(i);
                 this.__gl.uniformMatrix4fv(Kreator.model_loc, false, modelm.toArray());
@@ -258,14 +292,28 @@ class Kreator{
             
         }else{
             let shape_vert = o.getVertices();
-            let shape_color = o.getVerticesColors();
+            // let shape_color = o.getVerticesColors();
+            let shape_normals = o.getNormals();
             let modelm = o.getModelMatrix();
+            let material = o.material;
+            let AmbientProduct = material.ambient.color.multiplyEach(this.lights[0].ambient.color);
+            let DiffuseProduct = material.diffuse.color.multiplyEach(this.lights[0].diffuse.color);
+            let SpecularProduct = material.specular.color.multiplyEach(this.lights[0].specular.color);
+            AmbientProduct.set(3, 1.0);
+            DiffuseProduct.set(3, 1.0);
+            SpecularProduct.set(3, 1.0);
             this.__gl.uniformMatrix4fv(Kreator.model_loc, false, modelm.toArray());
-            this.__gl.bufferData(GL_ARRAY_BUFFER, new Float32Array(shape_vert.concat(shape_color)), GL_DYNAMIC_DRAW);
+            this.__gl.bufferData(GL_ARRAY_BUFFER, new Float32Array(shape_vert.concat(shape_normals)), GL_DYNAMIC_DRAW);
             this.__gl.vertexAttribPointer( Kreator.vert_loc, Kreator.numComponents, Kreator.type, Kreator.normalize, Kreator.stride, Kreator.offset);
             this.__gl.enableVertexAttribArray(Kreator.vert_loc);
-            this.__gl.vertexAttribPointer(Kreator.color_loc, KreatorColor.numComponents, Kreator.type, Kreator.normalize, Kreator.stride, shape_vert.length*4);
-            this.__gl.enableVertexAttribArray(Kreator.color_loc);
+            this.__gl.vertexAttribPointer(Kreator.normal_loc, Kreator.numComponents, Kreator.type, Kreator.normalize, Kreator.stride, shape_vert.length*4);
+            this.__gl.enableVertexAttribArray(Kreator.normal_loc);
+            this.__gl.uniform4fv(Kreator.ambient_loc, AmbientProduct.toArray());
+            this.__gl.uniform4fv(Kreator.diffuse_loc, DiffuseProduct.toArray());
+            this.__gl.uniform4fv(Kreator.specular_loc, SpecularProduct.toArray());
+            this.__gl.uniform1f(Kreator.shininess_loc, material.getShine());
+            // this.__gl.vertexAttribPointer(Kreator.color_loc, KreatorColor.numComponents, Kreator.type, Kreator.normalize, Kreator.stride, shape_vert.length*4);
+            // this.__gl.enableVertexAttribArray(Kreator.color_loc);
             this.__gl.drawArrays(o.drawType, Kreator.offset, o.getVerticesCount());
         }
     }
@@ -362,32 +410,70 @@ class Kreator{
 class KreatorDefaultShaders{
     static fragment_shader = `#version 300 es
     precision mediump float;
-                                
-    in vec4 color;
+
+    in mediump vec3 fN;
+    in mediump vec3 fV;
+    in mediump vec3 fL;
+   
+    uniform vec4 AmbientProduct, DiffuseProduct, SpecularProduct;
+    uniform float Shininess;
+
     out vec4 o_color; 
 
     void main(){
-        o_color = color;
+        vec3 N = normalize(fN);
+        vec3 V = normalize(fV);
+        vec3 L = normalize(fL);
+        vec3 H = normalize(L+V);
+
+        vec4 ambient = AmbientProduct;
+
+        float Kd = max(dot(L, N), 0.0);
+        vec4 diffuse = Kd*DiffuseProduct;
+
+        float Ks = pow(max(dot(N,H), 0.0), Shininess);
+        vec4 specular = Ks*SpecularProduct;
+
+        if(dot(L,N)<0.0) specular = vec4(0.0, 0.0, 0.0, 1.0);
+ 
+        if(false){
+            o_color = vec4(1.0,1.0,1.0,1.0);
+        }else{
+            o_color = ambient+diffuse+specular;
+            o_color.a = 1.0;
+
+        }
     }
     `;
                                 
     static vertex_shader = `#version 300 es
     
      in vec4 v_position;
-     in vec4 v_color;
+     in vec4 v_normal;
 
-    vec4 lightPos = vec4(100,100,-200, 1.0);
-
+     out mediump vec3 fN;
+     out mediump vec3 fV;
+     out mediump vec3 fL;
+    
      uniform mat4 model;
      uniform mat4 view;
+     uniform vec4 lightPos;
+    //  uniform vec4 cameraPos;
      uniform mat4 projection;
-
-     out vec4 color; 
                                 
      void main(){
-        float d = length(v_position-lightPos);
+        
+        mat4 modelview = view*model;
+        mat4 normalmat = mat4(transpose(inverse(modelview)));
+        fN = (normalmat*v_normal).xyz;
+        fV = -(modelview*v_position).xyz;
+        fL = lightPos.xyz;
+
+        if(lightPos.w != 0.0){
+            fL = lightPos.xyz-fV;
+        }
+
         gl_Position = projection*view*model*v_position;
-        color = vec4(v_color.r*(d/300.0),v_color.g*(d/300.0),v_color.b*(d/300.0),1.0);
      }
     `;
 }
@@ -398,9 +484,11 @@ class KreatorShape{
     pivot = new KreatorVector(Kreator.numComponents);
     size = new KreatorVector(3, [1,1,1]);
     normalPoints;
+    normals = [];
     color = [new KreatorColor("#ff0000ff")];
     rotation = new KreatorVector(3);
     drawType = GL_TRIANGLES;
+    material = KreatorMaterial.defaultMaterial();
 
     constructor(vertexCount, size, pos, color, pivot, primitive){
         if(pos instanceof KreatorVector){
@@ -446,7 +534,36 @@ class KreatorShape{
         }
         this.normalPoints.append(v);
     }
+
+    generateNormals(){
+        for(let i = 0; i<this.normalPoints.rows; i=i+3){
+            let vert0 = this.normalPoints.getRowAsVector(i);
+            vert0 = vert0.multiplyBy(-1);
+            let vert1 = this.normalPoints.getRowAsVector(i+1);
+            let vert2 = this.normalPoints.getRowAsVector(i+2);
+            let v1 = vert1.add(vert0);
+            let v2 = vert2.add(vert0);
+            let normal = v2.cross3D(v1);
+            let normals = normal.toArray();
+            this.normals.push(normals[0]);
+            this.normals.push(normals[1]);
+            this.normals.push(normals[2]);
+            this.normals.push(0.0);
+            this.normals.push(normals[0]);
+            this.normals.push(normals[1]);
+            this.normals.push(normals[2]);
+            this.normals.push(0.0);
+            this.normals.push(normals[0]);
+            this.normals.push(normals[1]);
+            this.normals.push(normals[2]);
+            this.normals.push(0.0);
+        }
+    }
     
+    getNormals(){
+        return this.normals;
+    }
+
     setNormalPoints(int_array){
         if(int_array.length>this.normalPoints.rows*this.normalPoints.columns){
             this.normalPoints = new KreatorMatrix(int_array.length/Kreator.numComponents, Kreator.numComponents);
@@ -549,6 +666,14 @@ class KreatorShape{
 
     resize(coeff){
         this.size = this.size.multiplyBy(coeff);
+    }
+
+    /**
+     * 
+     * @param {KreatorMaterial} m 
+     */
+    setMaterial(m){
+        this.material = m;
     }
 
     /*
@@ -1452,6 +1577,155 @@ class KreatorInstance{
     }
 }
 
+class KreatorMaterial{
+    shine = 10.0;
+    diffuse = new KreatorColor('#ff0000ff');
+    specular = new KreatorColor('#020202ff');
+    ambient = new KreatorColor('#af0000ff');
+    emission = new KreatorColor('#ffffffff');
+    texture;
+    normal;
+    bump;
+    
+
+    constructor(){
+
+    }
+
+    /**
+     * 
+     * @param {KreatorColor} c 
+     */
+    setDiffuse(c){
+        this.diffuse = c;
+    }
+
+    /**
+     * 
+     * @param {KreatorColor} c 
+     */
+    setSpecular(c){
+        this.specular = c;
+    }
+
+    /**
+     * 
+     * @param {KreatorColor} c 
+     */
+    setAmbient(c){
+        this.ambient = c;
+    }
+
+    /**
+     * 
+     * @param {number} s 
+     */
+    setShine(s){
+        this.shine = s;
+    }
+
+    getDiffuse(){
+        return this.diffuse.toArray();
+    }
+
+    getSpecular(){
+        return this.specular.toArray();
+    }
+
+    getAmbient(){
+        return this.ambient.toArray();
+    }
+
+    getEmission(){
+        return this.emission.toArray();
+    }
+
+    getShine(){
+        return this.shine;
+    }
+    
+    static defaultMaterial(){
+        return new KreatorMaterial();
+    }
+}
+
+//TODO: light types, currently point
+class KreatorLight{
+    pos = new KreatorVector(4, [10,200,0,0]);
+    diffuse = new KreatorColor([1,1,1,1]);
+    specular = new KreatorColor([1,1,1,1]);
+    ambient = new KreatorColor([0.25,0.25,0.25,1.0]);
+    emission = new KreatorColor('#ffffffff');
+
+    constructor(pos){
+        if(pos instanceof KreatorVector){
+            if(pos.dimension === 4){
+                this.pos = pos;
+            }
+        }
+    }
+
+    /**
+     * 
+     * @param {KreatorColor} c 
+     */
+    setDiffuse(c){
+        this.diffuse = c;
+    }
+
+    /**
+     * 
+     * @param {KreatorColor} c 
+     */
+    setSpecular(c){
+        this.specular = c;
+    }
+
+    /**
+     * 
+     * @param {KreatorColor} c 
+     */
+    setAmbient(c){
+        this.ambient = c;
+    }
+
+
+    /**
+     * 
+     * @param {KreatorVector} v 
+     */
+    move(v){
+        let transform = new KreatorMatrix(4,4, [
+            1,0,0,v.get(0),
+            0,1,0,v.get(1),
+            0,0,1,v.get(2),
+            0,0,0,1
+        ]);
+        this.pos = transform.multiplyByVec(this.pos);
+    }
+
+    getDiffuse(){
+        return this.diffuse.toArray();
+    }
+
+    getSpecular(){
+        return this.specular.toArray();
+    }
+
+    getAmbient(){
+        return this.ambient.toArray();
+    }
+
+    getEmission(){
+        return this.emission.toArray();
+    }
+
+    getPos(){
+        return this.pos.toArray();
+    }
+
+}
+
 /* Data Types */
 class KreatorVector{
     dimension = 0;
@@ -1556,6 +1830,16 @@ class KreatorVector{
             vf.set(i, this.get(i)*x);
         }
         return vf;
+    }
+
+    multiplyEach(v2){
+        if(this.dimension !== v2.dimension) throw new KreatorError("Dimensions don't match!");
+        let a = new KreatorVector(this.dimension);
+        for(let i=0;i<this.dimension;i++){
+            a.set(i, this.vec[i]*v2.get(i));
+        }
+
+        return a;
     }
     
     /**
@@ -1668,6 +1952,11 @@ class KreatorVector{
         return ret;
     }
     
+    append(val){
+        this.dimension++;
+        this.vec.push(val);
+    }
+
     /**
      * check if 2 vectors are identical
      * -1 means dimensions are different
@@ -1745,8 +2034,6 @@ class KreatorMatrix{
     }
     
     setFromArray(arr){
-        KreatorLogger.debug(this.mat);
-        KreatorLogger.debug(arr);
         for(let j = 0; j<this.rows; j++){
             for(let i = 0; i<this.columns;i++){
                 if(j*this.columns+i < arr.length){
@@ -2012,6 +2299,10 @@ class KreatorColor{
     
     getColor(){
         return this.color;
+    }
+
+    toArray(){
+        return this.color.toArray();
     }
     
     toString(){

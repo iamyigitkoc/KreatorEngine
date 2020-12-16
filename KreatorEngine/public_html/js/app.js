@@ -7,7 +7,7 @@
 
 window.onload = function(){
     KreatorLogger.setLogLevel(KreatorLogger.KL_TEST);
-    test();
+    // test();
     init();
 };
 var kr;
@@ -57,21 +57,21 @@ function init(){
         moused = 0;
     });
 
-    rotationSpeed.setFromArray([0.0, 0, 0]);
+    rotationSpeed.setFromArray([0.0, 1, 0]);
     camera = new KreatorCamera(
-        new KreatorVector(4, [0, -50, 100, 0]),
+        new KreatorVector(4, [0, -50, 150, 0]),
         new KreatorVector(4, [0, 0, 0, 0]),
         55,
         kr.appWidth(),
         kr.appHeight(),
-        {track: false}      
+        {track: true}      
     );
     kr.bindCamera(camera);
     kr.updateCamera();
 
 
     let floor = new KreatorRectangularPrism(
-        new KreatorVector(4, [200,0.25,200,0]),
+        new KreatorVector(4, [7000,0.25,7000,0]),
         new KreatorVector(4, [0,-6,0,0]),
         [
             new KreatorColor("#ff00ffff"),
@@ -79,8 +79,23 @@ function init(){
         new KreatorVector(4, [0,0,0,0]),
         GL_TRIANGLES
     );
+    
+    var material1 = new KreatorMaterial();
+    material1.setAmbient(new KreatorColor('#00cf00ff'));
+    material1.setDiffuse(new KreatorColor('#00af00ff'));
+    material1.setSpecular(new KreatorColor('#ffffffff'));
+    material1.setShine(100.0);
+
+    var material2 = new KreatorMaterial();
+    material2.setAmbient(new KreatorColor('#cf0000ff'));
+    material2.setDiffuse(new KreatorColor('#af0000ff'));
+    material2.setSpecular(new KreatorColor('#0f0f0fff'));
+    material2.setShine(10.0);
+
+    floor.setMaterial(material2);
+
     let wall = new KreatorRectangularPrism(
-        new KreatorVector(4, [0.25,200,200,0]),
+        new KreatorVector(4, [0.25,7000,7000,0]),
         new KreatorVector(4, [-100,-6,0,0]),
         [
             new KreatorColor("#ff00ffff"),
@@ -88,31 +103,33 @@ function init(){
         new KreatorVector(4, [0,0,0,0]),
         GL_TRIANGLES
     );
-    // wall = new KreatorInstance(
-    //     wall,
-    //     [
-    //         new KreatorVector(4, [-100,94,0,0]),
-    //         new KreatorVector(4, [100,94,0,0]),
-    //         new KreatorVector(4, [0,94,100,0])
-    //     ],
-    //     [
-    //         new KreatorVector(4, [0.25,200,200,0])
-    //     ],
-    //     [
-    //         new KreatorVector(4, [0,0,0,0]),
-    //         new KreatorVector(4, [0,0,0,0]),
-    //         new KreatorVector(4, [0,Math.PI/2,0,0])
-    //     ],
-    //     [
-    //         new KreatorVector(4, [0,0,0,0])
-    //     ]
-    // );
-    // kr.addObjectToScene(wall);
+    wall.generateNormals();
+    wall.setMaterial(material2);
+    wall = new KreatorInstance(
+        wall,
+        [
+            new KreatorVector(4, [-3500,0,0,0]),
+            new KreatorVector(4, [3500,0,0,0]),
+            new KreatorVector(4, [0,0,3500,0])
+        ],
+        [
+            new KreatorVector(4, [0.25,7000,7000,0])
+        ],
+        [
+            new KreatorVector(4, [0,0,0,0]),
+            new KreatorVector(4, [0,0,0,0]),
+            new KreatorVector(4, [0,Math.PI/2,0,0])
+        ],
+        [
+            new KreatorVector(4, [0,0,0,0])
+        ]
+    );
+    kr.addObjectToScene(wall);
     kr.addObjectToScene(floor);
     
     dragon = new KreatorOBJ(
-        "car.obj",
-        new KreatorVector(4, [10,10,10,0]),
+        "dragon_opt.obj",
+        new KreatorVector(4, [1,1,1,0]),
         new KreatorVector(4, [0,0,0,0]),
         [
             new KreatorColor("#00f000ff"),
@@ -120,8 +137,10 @@ function init(){
         new KreatorVector(4, [0,0,0,0])
         );
     dragon.objLoad();
-    dragon.rotate(new KreatorVector(4,[0,90,0,0]))
-
+    dragon.rotate(new KreatorVector(4,[0,90,0,0]));
+    dragon.setMaterial(material1);
+    
+    floor.generateNormals();
     window.requestAnimationFrame(waitLoad);
 }
 
@@ -129,6 +148,7 @@ function waitLoad(){
     if(!dragon.objLoaded){
         window.requestAnimationFrame(waitLoad);
     }else{
+        dragon.generateNormals();
         kr.addObjectToScene(dragon);
         window.requestAnimationFrame(draw);
     }
@@ -139,7 +159,7 @@ function draw(){
     kr.drawHead();
     kr.updateCamera();
     kr.drawScene();
-    dragon.move(new KreatorVector(4, [0,0,0.1,0]));
+    // dragon.move(new KreatorVector(4, [0,0,0.1,0]));
     dragon.rotate(rotationSpeed.multiplyBy(direction));
  
     window.requestAnimationFrame(draw);
